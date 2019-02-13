@@ -5,15 +5,15 @@
 FILE *getFilePtr(char*);
 long getFileLength(FILE*);
 void createBinaryArray(FILE*, long, int binaryArray[]);
+void writeToFile(int arr[], int size);
 
 void charToBinary(int arr[], char);
-void binaryToChar(int arr[], int, int);
 int compressArray(int binaryArray[], int newArray[], int arrLen);
+
 void printBinArray(int arr[], int);
+void printCompArray(int arr[], int);
 
 
-FILE *writeptr;
-char *newBuffer;
 
 int main (int argc, char **argv) {
 	FILE *filePtr = getFilePtr(argv[1]);
@@ -22,22 +22,13 @@ int main (int argc, char **argv) {
 
 	createBinaryArray(filePtr, fileLength, binaryArray);
 
+	int writeArray[fileLength * 8 * 2];
+	int size = compressArray(binaryArray, writeArray, fileLength * 8);
 
+//	printCompArray(writeArray, lastIndex - 1);
 
+	writeToFile(writeArray, size);
 
-
-
-	int newArray[fileLength * 8 * 2];
-	int lastIndex = compressArray(binaryArray, newArray, fileLength * 8);
-
-//	printBinArray(newArray, lastIndex - 1);
-
-	newBuffer = (char *)malloc((lastIndex/4 + 1) * sizeof(char));
-
-	writeptr = fopen("new.out", "wb");
-	fwrite(newBuffer, sizeof(newBuffer), 1, writeptr);
-
-	fclose(writeptr);
 }
 
 FILE *getFilePtr(char *fileName){
@@ -57,6 +48,7 @@ long getFileLength(FILE *filePtr){
 	return fileLength;
 }
 
+
 void createBinaryArray(FILE *filePtr, long fileLength, int binaryArray[]){
 	char *buffer;
 	buffer = (char *) malloc((fileLength + 1) *sizeof(char)); 
@@ -74,10 +66,11 @@ void createBinaryArray(FILE *filePtr, long fileLength, int binaryArray[]){
 		}
 	}
 
-	printBinArray(binaryArray, fileLength * 8);
+//	printBinArray(binaryArray, fileLength * 8);
+
+	free(buffer);
 	fclose(filePtr); 
 }
-
 
 void charToBinary (int arr[], char ch){
 	unsigned int num = (unsigned int) ch;
@@ -89,11 +82,6 @@ void charToBinary (int arr[], char ch){
 	}
 }
 
-void binaryToChar(int arr[], int count, int bit){
-
-}
-
-
 int compressArray(int binaryArray[], int newArray[], int arrLen){
 	int lastBit = binaryArray[0];
 	int bitCount = 1;
@@ -101,7 +89,7 @@ int compressArray(int binaryArray[], int newArray[], int arrLen){
 
 	int i = 1;
 	for (; i < arrLen; i++){
-		if (lastBit != binaryArray[i]){
+		if (lastBit != binaryArray[i] || bitCount > 255){
 			newArray[newIndex] = bitCount;
 			newArray[newIndex + 1] = lastBit;
 			newIndex = newIndex + 2;
@@ -117,12 +105,41 @@ int compressArray(int binaryArray[], int newArray[], int arrLen){
 	return newIndex + 1;
 }
 
+void writeToFile(int arr[], int size){
+	FILE *writePtr = fopen("new.c", "wb");
+	unsigned char *buffer = (unsigned char *) malloc((size + 1) *sizeof(unsigned char));
+	int i = 0;
+	for (; i < size; i++){
+		buffer[i] = arr[i];
+	}
+
+	fwrite(buffer, sizeof(unsigned char), i - 1, writePtr);
+
+	free(buffer);
+	fclose(writePtr);
+}
+
 void printBinArray(int arr[], int arrLen){
 	int i = 0;
 	for(; i < arrLen; i++){
 		if (i % 8 == 0 && i != 0) printf(" ");
 		if (i % 48 == 0 && i != 0) printf("\n");
 		printf("%d", arr[i]);
+	}
+
+	printf("\n");
+}
+
+void printCompArray(int arr[], int arrLen){
+	int i = 0;
+	for(; i < arrLen; i++){
+		if (i % 8 == 0 && i != 0) printf(" ");
+		if (i % 48 == 0 && i != 0) printf("\n");
+		if (i % 2 == 0) {
+			printf("%d", arr[i]);
+		} else {
+			printf("%d ", arr[i]);
+		}
 	}
 
 	printf("\n");
