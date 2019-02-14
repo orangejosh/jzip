@@ -5,7 +5,7 @@
 FILE *getFilePtr(char*);
 long getFileLength(FILE*);
 void createBinaryArray(FILE*, long, int binaryArray[]);
-void writeToFile(int arr[], int size);
+void writeToFile(char*, int arr[], int size);
 
 void charToBinary(int arr[], char);
 int compressArray(int binaryArray[], int newArray[], int arrLen);
@@ -16,7 +16,7 @@ void printCompArray(int arr[], int);
 
 
 int main (int argc, char **argv) {
-	FILE *filePtr = getFilePtr(argv[1]);
+	FILE *filePtr = getFilePtr(argv[2]);
 	long fileLength = getFileLength(filePtr);
 	int binaryArray[fileLength * 8];
 
@@ -27,7 +27,7 @@ int main (int argc, char **argv) {
 
 //	printCompArray(writeArray, lastIndex - 1);
 
-	writeToFile(writeArray, size);
+	writeToFile(argv[1], writeArray, size);
 
 }
 
@@ -105,8 +105,8 @@ int compressArray(int binaryArray[], int newArray[], int arrLen){
 	return newIndex + 1;
 }
 
-void writeToFile(int arr[], int size){
-	FILE *writePtr = fopen("new.c", "wb");
+void writeToFile(char *fileName, int arr[], int size){
+	FILE *writePtr = fopen(fileName, "wb");
 	unsigned char *buffer = (unsigned char *) malloc((size + 1) *sizeof(unsigned char));
 	int i = 0;
 	for (; i < size; i++){
