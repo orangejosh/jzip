@@ -1,14 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
+void compressFile(char*, char*);
+void decompressFile(char*, char*);
 
 FILE *getFilePtr(char*);
-long getFileLength(FILE*);
+long getSrcLen(FILE*);
+long getTargetLen(char[], long);
+
 void createBinaryArray(FILE*, long, int binaryArray[]);
-void writeToFile(char*, int arr[], int size);
+void createHexArray(FILE*, long, char[]);
+void writeToFile(char*, int arr[], int);
 
 void charToBinary(int arr[], char);
-int compressArray(int binaryArray[], int newArray[], int arrLen);
+int compressArray(int binaryArray[], int newArray[], int);
 
 void printBinArray(int arr[], int);
 void printCompArray(int arr[], int);
@@ -16,20 +22,55 @@ void printCompArray(int arr[], int);
 
 
 int main (int argc, char **argv) {
-	FILE *filePtr = getFilePtr(argv[2]);
-	long fileLength = getFileLength(filePtr);
-	int binaryArray[fileLength * 8];
+	char *option = argv[1];
+	char *target = argv[2];
+	char *source = argv[3];
 
-	createBinaryArray(filePtr, fileLength, binaryArray);
+	if (argc != 4){
+		printf("\nIncorrect format.\n\n");
+		printf("To compress:\n");
+		printf("./jzip -c target source\n\n");
+		printf("To decompress:\n");
+		printf("./jzip -d target source\n\n");
+		return -1;
+	} else if (strcmp(option, "-c") == 0){
+		compressFile(target, source);
+	} else if (strcmp(option, "-d") == 0){
+		decompressFile(target, source);
+	} else {
+		printf("Use option -c to compress or -d to decompress\n");
+		return -1;
+	}
 
-	int writeArray[fileLength * 8 * 2];
-	int size = compressArray(binaryArray, writeArray, fileLength * 8);
+	return 0;
+}
+
+void compressFile(char *target, char *source){
+	FILE *filePtr = getFilePtr(source);
+	long fileLen = getSrcLen(filePtr);
+	int binaryArray[fileLen * 8];
+
+	createBinaryArray(filePtr, fileLen, binaryArray);
+
+	int writeArray[fileLen * 8 * 2];
+	int size = compressArray(binaryArray, writeArray, fileLen * 8);
 
 //	printCompArray(writeArray, lastIndex - 1);
 
-	writeToFile(argv[1], writeArray, size);
-
+	writeToFile(target, writeArray, size);
 }
+
+void decompressFile(char *target, char *source){
+	FILE *filePtr = getFilePtr(source);
+	long srcLen = getSrcLen(filePtr);
+	char hexArray[srcLen];
+
+	createHexArray(filePtr, srcLen, hexArray);
+
+	long targetLen = getTargetLen(hexArray, srcLen);
+}
+
+
 
 FILE *getFilePtr(char *fileName){
 	FILE *filePtr;
@@ -38,25 +79,33 @@ FILE *getFilePtr(char *fileName){
 	return filePtr;
 }
 
-long getFileLength(FILE *filePtr){
-	long fileLength;
+long getSrcLen(FILE *filePtr){
+	long fileLen;
 
 	fseek(filePtr, 0, SEEK_END);          // Jump to the end of the file
-	fileLength = ftell(filePtr);          // Get the current byte offset in the file
+	fileLen = ftell(filePtr);          // Get the current byte offset in the file
 	rewind(filePtr);                      // Jump back to the beginning of the file
 
-	return fileLength;
+	return fileLen;
 }
 
+long getTargetLen(char arr[], long srcLen){
+	long count = 0;
+	int i = 0;
+	for (; i < srcLen; i=i+2){
+		count += arr[i];
+	}
+	return count;
+}
 
-void createBinaryArray(FILE *filePtr, long fileLength, int binaryArray[]){
+void createBinaryArray(FILE *filePtr, long fileLen, int binaryArray[]){
 	char *buffer;
-	buffer = (char *) malloc((fileLength + 1) *sizeof(char)); 
+	buffer = (char *) malloc((fileLen + 1) *sizeof(char)); 
 
-	fread(buffer, fileLength, 1, filePtr); // Read in the entire file
+	fread(buffer, fileLen, 1, filePtr); // Read in the entire file
 
 	int i = 0;
-	for (; i < fileLength; i++){
+	for (; i < fileLen; i++){
 		int tempArray[8];
 		charToBinary(tempArray, buffer[i]);
 
@@ -66,10 +115,14 @@ void createBinaryArray(FILE *filePtr, long fileLength, int binaryArray[]){
 		}
 	}
 
-//	printBinArray(binaryArray, fileLength * 8);
+//	printBinArray(binaryArray, fileLen * 8);
 
 	free(buffer);
 	fclose(filePtr); 
+}
+
+void createHexArray(FILE *filePtr, long srcLen, char hexArray[]){
+
 }
 
 void charToBinary (int arr[], char ch){
