@@ -89,7 +89,7 @@ int compressArray(int binaryArray[], int newArray[], int arrLen){
 
 	int i = 1;
 	for (; i < arrLen; i++){
-		if (lastBit != binaryArray[i] || bitCount > 255){
+		if (lastBit != binaryArray[i] || bitCount >= 255){
 			newArray[newIndex] = bitCount;
 			newArray[newIndex + 1] = lastBit;
 			newIndex = newIndex + 2;
