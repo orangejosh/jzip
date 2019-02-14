@@ -9,15 +9,15 @@ FILE *getFilePtr(char*);
 long getSrcLen(FILE*);
 long getTargetLen(char[], long);
 
-void createBinaryArray(FILE*, long, int binaryArray[]);
+void createBinaryArray(FILE*, long, int[]);
 void createHexArray(FILE*, long, char[]);
-void writeToFile(char*, int arr[], int);
+void writeToFile(char*, int[], int);
 
-void charToBinary(int arr[], char);
-int compressArray(int binaryArray[], int newArray[], int);
+void charToBinary(int[], char);
+int compressArray(int[], int[], int);
 
-void printBinArray(int arr[], int);
-void printCompArray(int arr[], int);
+void printBinArray(int[], int);
+void printCompArray(int[], int);
 
 
 
@@ -51,6 +51,7 @@ void compressFile(char *target, char *source){
 	int binaryArray[fileLen * 8];
 
 	createBinaryArray(filePtr, fileLen, binaryArray);
+	fclose(filePtr); 
 
 	int writeArray[fileLen * 8 * 2];
 	int size = compressArray(binaryArray, writeArray, fileLen * 8);
@@ -99,9 +100,8 @@ long getTargetLen(char arr[], long srcLen){
 }
 
 void createBinaryArray(FILE *filePtr, long fileLen, int binaryArray[]){
-	char *buffer;
+	char *buffer; 
 	buffer = (char *) malloc((fileLen + 1) *sizeof(char)); 
-
 	fread(buffer, fileLen, 1, filePtr); // Read in the entire file
 
 	int i = 0;
@@ -114,15 +114,21 @@ void createBinaryArray(FILE *filePtr, long fileLen, int binaryArray[]){
 			binaryArray[i * 8 + j] = tempArray[j];
 		}
 	}
-
 //	printBinArray(binaryArray, fileLen * 8);
-
 	free(buffer);
-	fclose(filePtr); 
 }
 
 void createHexArray(FILE *filePtr, long srcLen, char hexArray[]){
+	char *buffer; 
+	buffer = (char *) malloc((fileLen + 1) *sizeof(char)); 
+	fread(buffer, fileLen, 1, filePtr); // Read in the entire file
 
+	int i = 0;
+	for (; i < srcLen; i++){
+		hexArray[i] = buffer[i];
+	}
+
+	free(buffer);
 }
 
 void charToBinary (int arr[], char ch){
