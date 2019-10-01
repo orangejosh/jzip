@@ -1,9 +1,14 @@
 #include "main.h"
 
-const short headerLen = 2;		//2 bytes for the key
-const short keyHeader = 6;		// 2 bytes for the key, 2 for the pointer, 2 for the length
+const short HEADER_LEN = 2;		//2 bytes for the key
+const short KEY_HEADER = 6;		// 2 bytes for the key, 2 for the pointer, 2 for the length
 
-long lenOffset = 0;
+long delOffset = 0;
+
+struct runs {
+	int longPtr;
+	int longRun;
+};
 
 int main (int argc, char **argv) {
 	char *src = argv[1];
@@ -19,16 +24,15 @@ int main (int argc, char **argv) {
 
 	fclose(filePtr); 
 
-//	printBuffer(fileLen, buffer);
+	printBuffer(fileLen, buffer);
 	int key = createKey(buffer, fileLen);
-	printf("Create Key\n");
+	printf("Key: %06X\n\n", key);
 
 	char *compBuffer = compressFile(buffer, fileLen, key);
-	printf("Compress\n");
-//	printBuffer(fileLen - lenOffset, compBuffer);
+	printBuffer(fileLen - delOffset, compBuffer);
 
 	if (argc > 2){
-		writeToFile(dest, compBuffer, fileLen - lenOffset);
+		writeToFile(dest, compBuffer, fileLen - delOffset);
 	}
 
 	free(buffer);
@@ -73,41 +77,52 @@ int createKey(char *buffer, long fileLen){
 
 char *compressFile(char *buffer, long fileLen, short key){
 	char *tempBuffer = (char *) malloc((fileLen + 1) * sizeof(char)); 
-	unsigned char key1 = key & 0xFF;
-	unsigned char key2 = key >> 8;
+	char key1 = key & 0xFF;
+	char key2 = key >> 8;
+	int delOffset = 0;
 
 	tempBuffer[0] = key1;
 	tempBuffer[1] = key2;
 
 	for (int i = 0; i < fileLen; i++){
-		int j = i + SHRT_MIN < 0 ? 0 : i + SHRT_MIN;
-		if (i == j){
-			tempBuffer[i + headerLen] = buffer[j];
-		}
+		Struct run = getRun(i, buffer);
 
-		for (; j < i; j++){
-			short offset = 0;
-			while(buffer[i + offset] == buffer[j + offset]){
-				offset++;
-			}
+		if (run.longRun > KEY_HEADER){
+			short tempIndex = i - delOffset + HEADER_LEN;
+			tempBuffer[tempIndex] = key1;
+			tempBuffer[tempIndex + 1] = key2;
+			tempBuffer[tempIndex + 2] = run.longPtr & 0xFF;
+			tempBuffer[tempIndex + 3] = run.longPtr >> 8;
+			tempBuffer[tempIndex + 4] = run.longRun & 0xFF;
+			tempBuffer[tempIndex + 5] = run.longRun >> 8;
 
-			short tempIndex = i - lenOffset + headerLen;
-			if (offset <= keyHeader){
-				tempBuffer[tempIndex] = buffer[i];
-			} else {
-				tempBuffer[tempIndex] = key1;
-				tempBuffer[tempIndex + 1] = key2;
-				tempBuffer[tempIndex + 2] = (tempIndex - j) & 0xFF;
-				tempBuffer[tempIndex + 3] = (tempIndex - j) >> 8;
-				tempBuffer[tempIndex + 4] = offset & 0xFF;
-				tempBuffer[tempIndex + 5] = offset >> 8;
-
-				i += offset;
-				lenOffset += offset - keyHeader;
-			}
+			i += run.longRun - 1;
+			delOffset += run.longRun - KEY_HEADER;
+			printf("i: %i\n", i);
+		} else {
+			tempBuffer[i - delOffset + HEADER_LEN] = buffer[i];
 		}
 	}
 	return tempBuffer;
+}
+
+Struct getRun(int i, char *buffer){
+	Struct runs;
+	int j = i + SHRT_MIN < 0 ? 0 : i + SHRT_MIN;
+
+	for (; j < i; j++){
+		if (buffer[i] == buffer[j]){
+			int run = 1;
+			while(buffer[i + run] == buffer[j + run]){
+				run++;
+			}
+			if (run > runs.longRun){
+				runs.longRun = run;
+				runs.longPtr = j;
+			}
+		}
+	}
+	return runs;
 }
 
 void writeToFile(char *fileName, char *buffer, int size){
